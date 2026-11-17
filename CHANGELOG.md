@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.126.1](https://github.com/benletchford/systemless/compare/v0.126.0...v0.126.1) (2026-11-17)
+
+
+### Bug Fixes
+
+* **dialog-manager:** draw picture items whose PICT resource ID is 0 ([#6464](https://github.com/benletchford/systemless/issues/6464)) ([86b974d](https://github.com/benletchford/systemless/commit/86b974d7b9562e779a0ea08c0d3eb26cca65e4c7))
+* **dialog-manager:** keep the modal snapshot open until every userItem has drawn ([#6462](https://github.com/benletchford/systemless/issues/6462)) ([ee26b23](https://github.com/benletchford/systemless/commit/ee26b238a163e1a1e5460b16fdfe2d87f0d5b920))
+* **menu-manager:** return GetItem text as mac roman bytes ([#6452](https://github.com/benletchford/systemless/issues/6452)) ([d4890cb](https://github.com/benletchford/systemless/commit/d4890cb7d62a8dbe2bb7520268605ca84bb54fea))
+* **palette:** keep device cells 0 and 255 white and black during palette activation ([#6460](https://github.com/benletchford/systemless/issues/6460)) ([878f5a2](https://github.com/benletchford/systemless/commit/878f5a2bbf9728728d7187459b1a5269a1304de7))
+* **ppc:** keep window palettes out of caller window storage ([#6444](https://github.com/benletchford/systemless/issues/6444)) ([f50dcad](https://github.com/benletchford/systemless/commit/f50dcad3cc5e92859cb6d83a67339a8c99f4ba89))
+* **ppc:** match front-window palette activation against the device color table ([#6456](https://github.com/benletchford/systemless/issues/6456)) ([da829fd](https://github.com/benletchford/systemless/commit/da829fda1c8217c0928f3bc23ba9c581469de4e7))
+* **ppc:** resolve PBOpenWD vRefNum zero and ":" against the HSetVol default directory ([#6455](https://github.com/benletchford/systemless/issues/6455)) ([6b10a42](https://github.com/benletchford/systemless/commit/6b10a42f676c2f57aeaacc8a31e72666871b1537))
+* **ppc:** return idle bus status from SCSIStat instead of scCommErr ([#6446](https://github.com/benletchford/systemless/issues/6446)) ([83edd88](https://github.com/benletchford/systemless/commit/83edd88e4b05db25c13bf5fd6c350ecd15e47a9d))
+
 ## [0.126.0](https://github.com/benletchford/systemless/compare/v0.125.0...v0.126.0) (2026-11-17)
 
 

@@ -1479,6 +1479,29 @@ fn hle_trap_extra_tick_cost(opcode: u16) -> i32 {
     }
 }
 
+/// Traps a game calls between redraws: event polls, input polls, and clock
+/// reads. A frame presented while the guest's latest trap is one of these
+/// shows a finished redraw; a frame presented after a drawing trap may show
+/// a half-drawn screen in games that draw directly to the window.
+fn presentation_settle_trap(opcode: u16) -> bool {
+    matches!(
+        canonical_trap_number(opcode),
+        (true, 0x0170) // GetNextEvent
+            | (true, 0x0060) // WaitNextEvent
+            | (true, 0x0171) // EventAvail
+            | (true, 0x0175) // TickCount
+            | (true, 0x0174) // Button
+            | (true, 0x0172) // GetMouse
+            | (true, 0x0173) // StillDown
+            | (true, 0x0176) // GetKeys
+            | (true, 0x0177) // WaitMouseUp
+            | (true, 0x01B4) // SystemTask
+            | (false, 0x0030) // OSEventAvail
+            | (false, 0x0031) // GetOSEvent
+            | (false, 0x003B) // Delay
+    )
+}
+
 fn event_manager_yield_trap(opcode: u16) -> bool {
     matches!(
         canonical_trap_number(opcode),
@@ -1880,6 +1903,10 @@ pub struct FixtureRunner {
     /// the real Mac where MenuSelect blocks the application event loop.
     frozen_ticks: Option<u32>,
     menu_presentation_remainder: u64,
+    /// Whether the guest's most recent Toolbox/OS call was an event, input,
+    /// or clock poll rather than drawing or other manager work. Frontends use
+    /// it to avoid presenting a frame captured part-way through a redraw.
+    guest_settled_at_poll: bool,
     /// Guest-memory address of the Time Manager interrupt trampoline code.
     /// Allocated once on first use and reused for all subsequent timer fires.
     timer_trampoline: u32,
@@ -2140,6 +2167,7 @@ impl FixtureRunner {
             virtual_idle_entries: 0,
             frozen_ticks: None,
             menu_presentation_remainder: 0,
+            guest_settled_at_poll: true,
             timer_trampoline: 0,
             deferred_task_trampoline: 0,
             vbl_trampoline: 0,
@@ -3501,6 +3529,12 @@ impl FixtureRunner {
             .unwrap_or(false)
             || has_routable_process_callback
             || !self.dispatcher.sound_manager.pending_callbacks.is_empty()
+    }
+
+    /// True when the guest's latest trap was an event, input, or clock poll,
+    /// so its screen is between redraws rather than part-way through one.
+    pub fn guest_settled_at_poll(&self) -> bool {
+        self.guest_settled_at_poll
     }
 
     pub fn is_ui_tracking_active(&self) -> bool {
@@ -7242,6 +7276,7 @@ impl FixtureRunner {
     }
 
     fn dispatch_classic_with_process_services(&mut self, opcode: u16) -> Result<()> {
+        self.guest_settled_at_poll = presentation_settle_trap(opcode);
         let role = if self.native.availability().application {
             NativeEngineRole::Application
         } else {

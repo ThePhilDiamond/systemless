@@ -726,3 +726,37 @@ fn disassemble_at_uses_the_configured_ram_boundary() {
         "mapped RAM above 8 MiB must not be reported as unmapped"
     );
 }
+
+#[test]
+fn presentation_settle_trap_marks_event_input_and_clock_polls_only() {
+    // A frame presented while the guest's latest trap is one of these shows a
+    // finished redraw. Drawing and window-update traps leave the guest
+    // part-way through one.
+    for opcode in [
+        0xA860u16, // WaitNextEvent
+        0xA970,    // GetNextEvent
+        0xA971,    // EventAvail
+        0xA972,    // GetMouse
+        0xA973,    // StillDown
+        0xA974,    // Button
+        0xA975,    // TickCount
+        0xA976,    // GetKeys
+        0xA977,    // WaitMouseUp
+        0xA9B4,    // SystemTask
+        0xA030,    // OSEventAvail
+        0xA031,    // GetOSEvent
+        0xA03B,    // Delay
+    ] {
+        assert!(super::super::presentation_settle_trap(opcode), "${opcode:04X} should settle");
+    }
+    for opcode in [
+        0xA8F6u16, // DrawPicture
+        0xA8A3,    // EraseRect
+        0xAA0E,    // FillCRect
+        0xA8EC,    // CopyBits
+        0xA922,    // BeginUpdate
+        0xA873,    // SetPort
+    ] {
+        assert!(!super::super::presentation_settle_trap(opcode), "${opcode:04X} should not settle");
+    }
+}

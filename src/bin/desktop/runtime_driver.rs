@@ -773,19 +773,42 @@ impl GuiDriver {
     }
 
     pub(super) fn should_render_frame(&self, debug_overlay_visible: bool) -> bool {
-        if self.force_next_render {
-            return true;
-        }
         if debug_overlay_visible {
             return true;
         }
         let Some(runner) = self.runner.as_ref() else {
-            return false;
+            return self.force_next_render;
         };
-        runner.is_halted()
-            || runner.is_ui_tracking_active()
-            || self.last_presented_guest_tick != Some(runner.guest_tick())
+        if runner.is_halted() || runner.is_ui_tracking_active() {
+            return true;
+        }
+        let tick = runner.guest_tick();
+        if !self.force_next_render && self.last_presented_guest_tick == Some(tick) {
+            return false;
+        }
+        // Opt-in: games that redraw straight into their window can be caught
+        // part-way through a redraw, which shows as a flash. Hold the previous
+        // frame until the guest is back at an event, input, or clock poll, for
+        // at most a few ticks. This also applies to input-forced presents,
+        // since a player moving or typing would otherwise see every mid-redraw
+        // frame.
+        if present_settled_frames_enabled() && !runner.guest_settled_at_poll() {
+            if let Some(last) = self.last_presented_guest_tick {
+                return tick.wrapping_sub(last) >= SETTLED_FRAME_MAX_HOLD_TICKS;
+            }
+        }
+        true
     }
+}
+
+/// Longest a settled-frame hold may delay presentation, in guest ticks.
+const SETTLED_FRAME_MAX_HOLD_TICKS: u32 = 4;
+
+fn present_settled_frames_enabled() -> bool {
+    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ENABLED.get_or_init(|| {
+        std::env::var_os("SYSTEMLESS_PRESENT_SETTLED_FRAMES").is_some_and(|v| v != "0")
+    })
 }
 
 #[cfg(test)]
